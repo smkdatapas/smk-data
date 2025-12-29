@@ -1,4 +1,4 @@
-const CACHE_NAME = 'SMK-DATA'; 
+const CACHE_NAME = 'SMK-DATA-v2.1-GEO'; 
 const urlsToCache = [
     '/',
     '/index.html',
