@@ -15,34 +15,32 @@
         html, body {
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; font-family: Arial, sans-serif;
-            background-color: #ffffff; /* Pastikan background putih */
+            background-color: #ffffff;
         }
         body { display: flex; flex-direction: column; }
         
+        /* Layar Loading & Status Lokasi */
         #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 18px;
-            color: #333;
-            z-index: 2000;
-            /* Sembunyikan secara default, akan diaktifkan oleh JS jika perlu */
-            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffffff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            font-size: 18px; color: #333; z-index: 2000;
+            text-align: center; padding: 20px;
         }
 
+        /* Layar Akses Ditolak */
+        #denied-screen {
+            display: none; /* Sembunyi default */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffebee; z-index: 2001;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 30px; color: #c62828;
+        }
+        #denied-screen h2 { margin-top: 0; }
+
         #appFrame { 
-            flex-grow: 1; 
-            border: none; 
-            width: 100%; 
-            height: 100%;
-            /* Secara default akan terlihat, JS akan menyembunyikannya jika loading screen aktif */
-            visibility: visible; 
+            flex-grow: 1; border: none; width: 100%; height: 100%;
+            visibility: hidden; /* Sembunyi sampai lokasi valid */
         }
 
         #installButton {
@@ -55,71 +53,134 @@
             display: none;
         }
         #installButton:hover { background-color: #45a049; }
+        
+        button.retry-btn {
+            margin-top: 20px; padding: 10px 20px;
+            background-color: #2196F3; color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-size: 16px;
+        }
     </style>
 </head>
 <body>
+
     <div id="loading-screen">
-        <span>Memuat Aplikasi...</span>
+        <span id="loading-text">Memuat Aplikasi & Memeriksa Lokasi...</span>
+    </div>
+
+    <div id="denied-screen">
+        <h2>🚫 Akses Ditolak</h2>
+        <p id="denied-msg">Anda berada di luar jangkauan area.</p>
+        <button class="retry-btn" onclick="window.location.reload()">Coba Lagi</button>
     </div>
 
     <iframe  
         id="appFrame"
         src="https://script.google.com/macros/s/AKfycbysv3mVMzqRqy3VKE5TIjcVwPYkgSb72JKy55LM9LCoBZ6J0xs-UuShdEtLdQxXC6cq/exec"
         allowfullscreen="true"
-        allow="camera">
+        allow="camera; geolocation">
         Browser Anda tidak mendukung iframe.
     </iframe>
 
     <button id="installButton">Install Aplikasi 🚀</button>
 
     <script>
-        let deferredPrompt;
-        const installButton = document.getElementById('installButton');
-        const appFrame = document.getElementById('appFrame');
-        const loadingScreen = document.getElementById('loading-screen');
+        // ==========================================
+        // KONFIGURASI LOKASI (UBAH DI SINI)
+        // ==========================================
+        const TARGET_LAT = -6.200000;  // Ganti dengan Latitude target
+        const TARGET_LON = 106.816666; // Ganti dengan Longitude target
+        const MAX_RADIUS_METER = 100;  // Radius izin dalam meter
+        // ==========================================
 
-        // Fungsi untuk mengecek apakah perangkat adalah mobile
-        function isMobile() {
-            return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingText = document.getElementById('loading-text');
+        const deniedScreen = document.getElementById('denied-screen');
+        const deniedMsg = document.getElementById('denied-msg');
+        const appFrame = document.getElementById('appFrame');
+        const installButton = document.getElementById('installButton');
+
+        // Rumus Haversine untuk menghitung jarak
+        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius bumi dalam km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const d = R * c; // Jarak dalam km
+            return d * 1000; // Jarak dalam meter
         }
 
-        // Cek apakah aplikasi berjalan dalam mode standalone (sudah di-install)
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        // Fungsi Cek Lokasi
+        function checkLocation() {
+            if (!navigator.geolocation) {
+                showDenied("Browser Anda tidak mendukung Geolocation.");
+                return;
+            }
+
+            loadingText.innerText = "Mendeteksi Lokasi Anda...";
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    const distance = getDistanceFromLatLonInMeters(userLat, userLon, TARGET_LAT, TARGET_LON);
+                    
+                    console.log(`Posisi: ${userLat}, ${userLon}. Jarak: ${distance.toFixed(2)} meter.`);
+
+                    if (distance <= MAX_RADIUS_METER) {
+                        // LOKASI DITERIMA
+                        loadingScreen.style.display = 'none';
+                        appFrame.style.visibility = 'visible';
+                    } else {
+                        // LOKASI DITOLAK (Terlalu jauh)
+                        showDenied(`Anda berada ${distance.toFixed(0)} meter dari lokasi. Maksimal ${MAX_RADIUS_METER} meter.`);
+                    }
+                },
+                (error) => {
+                    let msg = "Gagal mengambil lokasi.";
+                    if (error.code === 1) msg = "Izin lokasi ditolak. Mohon aktifkan GPS.";
+                    else if (error.code === 2) msg = "Posisi tidak tersedia (Nyalakan GPS).";
+                    else if (error.code === 3) msg = "Waktu permintaan habis.";
+                    showDenied(msg);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function showDenied(message) {
+            loadingScreen.style.display = 'none';
+            appFrame.style.visibility = 'hidden';
+            deniedScreen.style.display = 'flex';
+            deniedMsg.innerText = message;
+        }
+
+        // Jalankan cek lokasi saat halaman dimuat
+        window.addEventListener('load', checkLocation);
+
+        // --- Logic PWA & Install Button (Kode Lama Anda) ---
+        let deferredPrompt;
+        function isMobile() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
-        if (isStandalone) {
-            // Jika sudah di-install, tampilkan loading screen dan sembunyikan iframe
-            loadingScreen.style.display = 'flex';
-            appFrame.style.visibility = 'hidden';
-
-            // Tambahkan event listener untuk menunggu iframe selesai load
-            appFrame.addEventListener('load', () => {
-                // Setelah iframe load, sembunyikan loading screen dan tampilkan iframe
-                loadingScreen.style.display = 'none';
-                appFrame.style.visibility = 'visible';
-            });
-        }
-        
-        // Sembunyikan tombol install secara default jika sudah standalone
         if (isStandalone) {
             installButton.style.display = 'none';
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Cek jika belum diinstall baru jalankan logic prompt
             if (!isStandalone) {
                 e.preventDefault();
                 deferredPrompt = e;
-
-                // Tampilkan tombol HANYA jika di perangkat mobile
                 if (isMobile()) {
                     installButton.style.display = 'block';
-
-                    // Atur timer untuk menyembunyikan tombol setelah 15 detik
-                    setTimeout(() => {
-                        if (installButton.style.display === 'block') {
-                            installButton.style.display = 'none';
-                        }
-                    }, 15000); // 15 detik
+                    setTimeout(() => { if (installButton.style.display === 'block') installButton.style.display = 'none'; }, 15000);
                 }
             }
         });
@@ -141,8 +202,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw-v2.js')
-                    .then(registration => console.log('Service Worker v2 terdaftar:', registration.scope))
-                    .catch(error => console.error('Pendaftaran Service Worker v2 gagal:', error));
+                    .then(registration => console.log('SW Registered'))
+                    .catch(err => console.error('SW Fail:', err));
             });
         }
     </script>
