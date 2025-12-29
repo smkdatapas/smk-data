@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0, user-scalable=no">
     
     <meta name="theme-color" content="#ffffff">
     
@@ -12,51 +12,86 @@
     <link rel="manifest" href="manifest-v2.json">
 
     <style>
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            overflow: hidden; font-family: Arial, sans-serif;
-            background-color: #ffffff;
-        }
-        body { display: flex; flex-direction: column; }
-        
-        /* Layar Loading & Status Lokasi */
-        #loading-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #ffffff; display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            font-size: 18px; color: #333; z-index: 2000;
-            text-align: center; padding: 20px;
-        }
-        
-        /* Style khusus untuk teks loading agar rapi 2 baris */
-        #loading-text {
-            line-height: 1.6; /* Jarak antar baris */
-            font-weight: bold;
+        /* Reset CSS agar hitungan ukuran lebih akurat */
+        * {
+            box-sizing: border-box;
         }
 
-        /* Layar Akses Ditolak */
-        #denied-screen {
-            display: none; /* Sembunyi default */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #ffebee; z-index: 2001;
-            flex-direction: column; justify-content: center; align-items: center;
-            text-align: center; padding: 30px; color: #c62828;
+        html, body {
+            margin: 0; padding: 0; 
+            height: 100%; width: 100%;
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
         }
-        #denied-screen h2 { margin-top: 0; }
+        
+        body { display: flex; flex-direction: column; }
+        
+        /* === PERBAIKAN POSISI LOADING === */
+        #loading-screen {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100vh; /* Menggunakan Viewport Height agar pas di layar HP */
+            background-color: #ffffff; 
+            
+            /* Flexbox untuk Center Absolut */
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; /* Tengah Vertikal */
+            align-items: center;     /* Tengah Horizontal */
+            
+            z-index: 2000;
+        }
+        
+        #loading-text {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+            line-height: 1.6; /* Jarak antar baris */
+            width: 100%;
+            padding: 0 20px; /* Padding kiri-kanan agar teks tidak mepet pinggir layar */
+            margin: 0; /* Hapus margin bawaan agar center presisi */
+        }
+
+        /* === PERBAIKAN POSISI AKSES DITOLAK === */
+        #denied-screen {
+            display: none;
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100vh;
+            background-color: #ffebee; 
+            z-index: 2001;
+            
+            /* Flexbox Center */
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center;
+            
+            text-align: center; 
+            padding: 30px; 
+            color: #c62828;
+        }
+        #denied-screen h2 { margin-top: 0; margin-bottom: 10px; }
 
         #appFrame { 
             flex-grow: 1; border: none; width: 100%; height: 100%;
-            visibility: hidden; /* Sembunyi sampai lokasi valid */
+            visibility: hidden;
         }
 
         #installButton {
-            position: fixed; bottom: 20px; left: 50%;
+            position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%); z-index: 1000;
             background-color: #4CAF50; color: white;
             padding: 12px 24px; border: none; border-radius: 8px;
             cursor: pointer; font-size: 16px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             display: none;
+            white-space: nowrap; /* Mencegah teks tombol turun baris */
         }
         #installButton:hover { background-color: #45a049; }
         
@@ -133,7 +168,6 @@
                 return;
             }
 
-            // Update teks saat proses mendeteksi dimulai
             loadingText.innerHTML = "Mendeteksi<br>Lokasi Anda...";
 
             navigator.geolocation.getCurrentPosition(
@@ -150,7 +184,7 @@
                         loadingScreen.style.display = 'none';
                         appFrame.style.visibility = 'visible';
                     } else {
-                        // LOKASI DITOLAK (Pesan Sederhana)
+                        // LOKASI DITOLAK
                         showDenied("Anda berada di luar lokasi sekolah.");
                     }
                 },
@@ -169,11 +203,9 @@
             loadingScreen.style.display = 'none';
             appFrame.style.visibility = 'hidden';
             deniedScreen.style.display = 'flex';
-            // Gunakan innerHTML agar bisa render <br> jika ada pesan error sistem
             deniedMsg.innerHTML = message;
         }
 
-        // Jalankan cek lokasi saat halaman dimuat
         window.addEventListener('load', checkLocation);
 
         // --- Logic PWA & Install Button ---
