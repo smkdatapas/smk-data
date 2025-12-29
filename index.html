@@ -27,6 +27,12 @@
             font-size: 18px; color: #333; z-index: 2000;
             text-align: center; padding: 20px;
         }
+        
+        /* Style khusus untuk teks loading agar rapi 2 baris */
+        #loading-text {
+            line-height: 1.6; /* Jarak antar baris */
+            font-weight: bold;
+        }
 
         /* Layar Akses Ditolak */
         #denied-screen {
@@ -64,13 +70,15 @@
 <body>
 
     <div id="loading-screen">
-        <span id="loading-text">Memuat Aplikasi & 
-            Memeriksa Lokasi...</span>
+        <div id="loading-text">
+            Memuat Aplikasi<br>
+            & Memeriksa Lokasi...
+        </div>
     </div>
 
     <div id="denied-screen">
         <h2>🚫 Akses Ditolak</h2>
-        <p id="denied-msg">Anda berada di luar jangkauan area.</p>
+        <p id="denied-msg">Anda berada di luar lokasi sekolah.</p>
         <button class="retry-btn" onclick="window.location.reload()">Coba Lagi</button>
     </div>
 
@@ -88,8 +96,8 @@
         // ==========================================
         // KONFIGURASI LOKASI (UBAH DI SINI)
         // ==========================================
-        const TARGET_LAT = -7.759300000000;  // Ganti dengan Latitude target
-        const TARGET_LON = 112.728100000000; // Ganti dengan Longitude target
+        const TARGET_LAT = -7.759300000000;  // Latitude target
+        const TARGET_LON = 112.728100000000; // Longitude target
         const MAX_RADIUS_METER = 2500;  // Radius izin dalam meter
         // ==========================================
 
@@ -125,7 +133,8 @@
                 return;
             }
 
-            loadingText.innerText = "Mendeteksi Lokasi Anda...";
+            // Update teks saat proses mendeteksi dimulai
+            loadingText.innerHTML = "Mendeteksi<br>Lokasi Anda...";
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -141,14 +150,14 @@
                         loadingScreen.style.display = 'none';
                         appFrame.style.visibility = 'visible';
                     } else {
-                        // LOKASI DITOLAK (Terlalu jauh)
-                        showDenied(`Anda berada ${distance.toFixed(0)} meter dari lokasi. Maksimal ${MAX_RADIUS_METER} meter.`);
+                        // LOKASI DITOLAK (Pesan Sederhana)
+                        showDenied("Anda berada di luar lokasi sekolah.");
                     }
                 },
                 (error) => {
                     let msg = "Gagal mengambil lokasi.";
-                    if (error.code === 1) msg = "Izin lokasi ditolak. Mohon aktifkan GPS.";
-                    else if (error.code === 2) msg = "Posisi tidak tersedia (Nyalakan GPS).";
+                    if (error.code === 1) msg = "Izin lokasi ditolak.<br>Mohon aktifkan GPS.";
+                    else if (error.code === 2) msg = "Posisi tidak tersedia.<br>(Nyalakan GPS).";
                     else if (error.code === 3) msg = "Waktu permintaan habis.";
                     showDenied(msg);
                 },
@@ -160,13 +169,14 @@
             loadingScreen.style.display = 'none';
             appFrame.style.visibility = 'hidden';
             deniedScreen.style.display = 'flex';
-            deniedMsg.innerText = message;
+            // Gunakan innerHTML agar bisa render <br> jika ada pesan error sistem
+            deniedMsg.innerHTML = message;
         }
 
         // Jalankan cek lokasi saat halaman dimuat
         window.addEventListener('load', checkLocation);
 
-        // --- Logic PWA & Install Button (Kode Lama Anda) ---
+        // --- Logic PWA & Install Button ---
         let deferredPrompt;
         function isMobile() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
