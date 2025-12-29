@@ -64,7 +64,8 @@
 <body>
 
     <div id="loading-screen">
-        <span id="loading-text">Memuat Aplikasi & Memeriksa Lokasi...</span>
+        <span id="loading-text">Memuat Aplikasi & 
+            Memeriksa Lokasi...</span>
     </div>
 
     <div id="denied-screen">
@@ -89,7 +90,7 @@
         // ==========================================
         const TARGET_LAT = -6.200000;  // Ganti dengan Latitude target
         const TARGET_LON = 106.816666; // Ganti dengan Longitude target
-        const MAX_RADIUS_METER = 100;  // Radius izin dalam meter
+        const MAX_RADIUS_METER = 1000000;  // Radius izin dalam meter
         // ==========================================
 
         const loadingScreen = document.getElementById('loading-screen');
