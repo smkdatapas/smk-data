@@ -4,18 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0, user-scalable=no">
     
-    <meta name="theme-color" content="#ffffff">
-    
-    <link rel="shortcut icon" type="image/png" href="https://i.imghippo.com/files/F2741Cc.png" />
+    <meta name="theme-color" content="#0ba35a"> <link rel="shortcut icon" type="image/png" href="https://i.imghippo.com/files/F2741Cc.png" />
     <title>SMK-DATA</title>
     
     <link rel="manifest" href="manifest-v2.json">
 
     <style>
-        /* Reset CSS agar hitungan ukuran lebih akurat */
-        * {
-            box-sizing: border-box;
-        }
+        /* Reset CSS */
+        * { box-sizing: border-box; }
 
         html, body {
             margin: 0; padding: 0; 
@@ -27,20 +23,19 @@
         
         body { display: flex; flex-direction: column; }
         
-        /* === PERBAIKAN POSISI LOADING === */
+        /* === LOADING SCREEN (Updated Color) === */
         #loading-screen {
             position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100vh; /* Menggunakan Viewport Height agar pas di layar HP */
-            background-color: #ffffff; 
+            top: 0; left: 0; 
+            width: 100%; height: 100vh;
             
-            /* Flexbox untuk Center Absolut */
+            /* Warna Latar Hijau sesuai permintaan */
+            background-color: #0ba35a; 
+            
             display: flex; 
             flex-direction: column;
-            justify-content: center; /* Tengah Vertikal */
-            align-items: center;     /* Tengah Horizontal */
+            justify-content: center; 
+            align-items: center;
             
             z-index: 2000;
         }
@@ -48,30 +43,27 @@
         #loading-text {
             text-align: center;
             font-size: 18px;
-            color: #333;
+            
+            /* Warna teks diubah jadi Putih agar terbaca di background hijau */
+            color: #ffffff; 
+            
             font-weight: bold;
-            line-height: 1.6; /* Jarak antar baris */
+            line-height: 1.6;
             width: 100%;
-            padding: 0 20px; /* Padding kiri-kanan agar teks tidak mepet pinggir layar */
-            margin: 0; /* Hapus margin bawaan agar center presisi */
+            padding: 0 20px;
+            margin: 0;
         }
 
-        /* === PERBAIKAN POSISI AKSES DITOLAK === */
+        /* === LAYAR AKSES DITOLAK === */
         #denied-screen {
             display: none;
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100vh;
+            position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100vh;
             background-color: #ffebee; 
             z-index: 2001;
-            
-            /* Flexbox Center */
             flex-direction: column; 
             justify-content: center; 
             align-items: center;
-            
             text-align: center; 
             padding: 30px; 
             color: #c62828;
@@ -86,14 +78,14 @@
         #installButton {
             position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%); z-index: 1000;
-            background-color: #4CAF50; color: white;
+            background-color: #ffffff; color: #0ba35a; /* Diubah agar senada */
             padding: 12px 24px; border: none; border-radius: 8px;
-            cursor: pointer; font-size: 16px;
+            cursor: pointer; font-size: 16px; font-weight: bold;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             display: none;
-            white-space: nowrap; /* Mencegah teks tombol turun baris */
+            white-space: nowrap;
         }
-        #installButton:hover { background-color: #45a049; }
+        #installButton:hover { background-color: #f0f0f0; }
         
         button.retry-btn {
             margin-top: 20px; padding: 10px 20px;
@@ -129,7 +121,7 @@
 
     <script>
         // ==========================================
-        // KONFIGURASI LOKASI (UBAH DI SINI)
+        // KONFIGURASI LOKASI
         // ==========================================
         const TARGET_LAT = -7.759300000000;  // Latitude target
         const TARGET_LON = 112.728100000000; // Longitude target
@@ -143,9 +135,14 @@
         const appFrame = document.getElementById('appFrame');
         const installButton = document.getElementById('installButton');
 
-        // Rumus Haversine untuk menghitung jarak
+        // Fungsi Deteksi Mobile
+        function isMobile() { 
+            return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); 
+        }
+
+        // Rumus Haversine
         function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius bumi dalam km
+            const R = 6371; 
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
             const a =
@@ -153,15 +150,30 @@
                 Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const d = R * c; // Jarak dalam km
-            return d * 1000; // Jarak dalam meter
+            const d = R * c; 
+            return d * 1000; 
         }
 
         function deg2rad(deg) {
             return deg * (Math.PI / 180);
         }
 
-        // Fungsi Cek Lokasi
+        // Fungsi Utama untuk Memulai Aplikasi
+        function initApp() {
+            // LOGIKA BARU: Cek apakah Mobile atau PC
+            if (isMobile()) {
+                // Jika HP, jalankan Cek Lokasi
+                console.log("Perangkat Mobile terdeteksi. Memulai cek lokasi...");
+                checkLocation();
+            } else {
+                // Jika PC/Laptop, Bypass Cek Lokasi (Langsung Buka)
+                console.log("PC/Laptop terdeteksi. Lokasi di-bypass.");
+                loadingScreen.style.display = 'none';
+                appFrame.style.visibility = 'visible';
+            }
+        }
+
+        // Fungsi Cek Lokasi (Hanya dipanggil jika Mobile)
         function checkLocation() {
             if (!navigator.geolocation) {
                 showDenied("Browser Anda tidak mendukung Geolocation.");
@@ -206,11 +218,11 @@
             deniedMsg.innerHTML = message;
         }
 
-        window.addEventListener('load', checkLocation);
+        // Jalankan initApp saat halaman dimuat
+        window.addEventListener('load', initApp);
 
         // --- Logic PWA & Install Button ---
         let deferredPrompt;
-        function isMobile() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
         if (isStandalone) {
