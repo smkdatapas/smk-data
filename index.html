@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0, user-scalable=no">
     
-    <meta name="theme-color" content="#003425"> <link rel="shortcut icon" type="image/png" href="https://i.imghippo.com/files/F2741Cc.png" />
+    <meta name="theme-color" content="#003425"> 
+    <link rel="shortcut icon" type="image/png" href="https://i.imghippo.com/files/F2741Cc.png" />
     <title>SMK-DATA</title>
     
     <link rel="manifest" href="manifest-v2.json">
@@ -23,13 +24,14 @@
         
         body { display: flex; flex-direction: column; }
         
-        /* === LOADING SCREEN (Hanya muncul saat cek lokasi aktif) === */
+        /* === LOADING SCREEN === */
+        /* Default: Hidden (muncul hanya saat dipanggil) */
         #loading-screen {
             position: fixed; 
             top: 0; left: 0; 
             width: 100%; height: 100vh;
-            background-color: rgba(0, 52, 37, 0.9); /* Transparan dikit biar estetik */
-            display: none; /* Default sembunyi */
+            background-color: rgba(0, 52, 37, 0.95); 
+            display: none; 
             flex-direction: column;
             justify-content: center; 
             align-items: center;
@@ -53,7 +55,7 @@
             position: fixed; top: 0; left: 0; 
             width: 100%; height: 100vh;
             background-color: #ffebee; 
-            z-index: 2001;
+            z-index: 2001; /* Paling atas, menutupi iframe */
             flex-direction: column; 
             justify-content: center; 
             align-items: center;
@@ -63,11 +65,13 @@
         }
         #denied-screen h2 { margin-top: 0; margin-bottom: 10px; }
 
+        /* IFRAME APLIKASI */
         #appFrame { 
             flex-grow: 1; border: none; width: 100%; height: 100%;
-            visibility: visible; /* Langsung tampil */
+            visibility: visible; 
         }
 
+        /* TOMBOL INSTALL PWA */
         #installButton {
             position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%); z-index: 1000;
@@ -80,18 +84,15 @@
         }
         #installButton:hover { background-color: #f0f0f0; }
         
+        /* TOMBOL COBA LAGI (REFRESH) */
         button.retry-btn {
-            margin-top: 20px; padding: 10px 20px;
-            background-color: #2196F3; color: white; border: none;
+            margin-top: 20px; padding: 12px 24px;
+            background-color: #d32f2f; color: white; border: none;
             border-radius: 5px; cursor: pointer; font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        
-        /* Tombol Tutup Overlay (Jika user ingin kembali ke menu utama setelah ditolak) */
-        button.close-overlay-btn {
-            margin-top: 10px; padding: 10px 20px;
-            background-color: #555; color: white; border: none;
-            border-radius: 5px; cursor: pointer; font-size: 14px;
-        }
+        button.retry-btn:hover { background-color: #b71c1c; }
     </style>
 </head>
 <body>
@@ -106,8 +107,8 @@
     <div id="denied-screen">
         <h2>🚫 Akses Ditolak</h2>
         <p id="denied-msg">Anda berada di luar lokasi sekolah.</p>
-        <button class="retry-btn" onclick="checkLocation()">Coba Lagi</button>
-        <button class="close-overlay-btn" onclick="closeDeniedScreen()">Kembali ke Menu</button>
+        
+        <button class="retry-btn" onclick="window.location.reload()">Coba Lagi ↻</button>
     </div>
 
     <iframe  
@@ -133,13 +134,14 @@
         const loadingText = document.getElementById('loading-text');
         const deniedScreen = document.getElementById('denied-screen');
         const deniedMsg = document.getElementById('denied-msg');
-        const appFrame = document.getElementById('appFrame');
         const installButton = document.getElementById('installButton');
 
+        // Fungsi Deteksi Mobile
         function isMobile() { 
             return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); 
         }
 
+        // Rumus Haversine (Hitung Jarak)
         function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = deg2rad(lat2 - lat1);
@@ -157,25 +159,30 @@
             return deg * (Math.PI / 180);
         }
 
-        // --- UPDATE: Event Listener untuk Pesan dari GAS ---
+        // ==========================================
+        // KOMUNIKASI DENGAN GOOGLE APPS SCRIPT
+        // ==========================================
+        // Mendengarkan pesan dari iframe
         window.addEventListener('message', function(event) {
-            // Pastikan pesan aman (opsional: cek origin jika perlu)
+            // Jika menerima pesan 'trigger-cek-lokasi', jalankan pengecekan
             if (event.data === 'trigger-cek-lokasi') {
-                console.log("Menerima perintah cek lokasi dari Iframe...");
+                console.log("Menerima perintah cek lokasi dari Aplikasi...");
                 initCheck();
             }
         });
 
-        // Fungsi baru untuk memulai pengecekan (dipanggil saat tombol diklik)
+        // Memulai Pengecekan
         function initCheck() {
             if (isMobile()) {
-                loadingScreen.style.display = 'flex'; // Tampilkan loading
+                loadingScreen.style.display = 'flex'; // Tampilkan loading hijau
                 checkLocation();
             } else {
                 console.log("PC detected, bypass location check.");
+                // Jika PC, tidak perlu melakukan apa-apa, biarkan user lanjut
             }
         }
 
+        // Proses Ambil GPS
         function checkLocation() {
             if (!navigator.geolocation) {
                 showDenied("Browser Anda tidak mendukung Geolocation.");
@@ -194,10 +201,9 @@
                     console.log(`Posisi: ${userLat}, ${userLon}. Jarak: ${distance.toFixed(2)} meter.`);
 
                     if (distance <= MAX_RADIUS_METER) {
-                        // LOKASI DITERIMA
+                        // LOKASI AMAN
+                        // Sembunyikan loading, user bisa lanjut mengisi jurnal di iframe
                         loadingScreen.style.display = 'none';
-                        // Tidak perlu refresh, user tinggal lanjut isi form
-                        // Opsional: Kirim pesan balik ke GAS "lokasi-ok" jika script GAS membutuhkannya
                     } else {
                         // LOKASI DITOLAK
                         showDenied("Anda berada di luar lokasi sekolah.<br>Jarak: " + Math.round(distance) + "m");
@@ -214,20 +220,17 @@
             );
         }
 
+        // Tampilkan Layar Merah (Akses Ditolak)
         function showDenied(message) {
             loadingScreen.style.display = 'none';
-            // Kita TIDAK hide appFrame agar user bisa klik tombol kembali
-            // appFrame.style.visibility = 'hidden'; 
-            deniedScreen.style.display = 'flex';
+            deniedScreen.style.display = 'flex'; // Munculkan layar merah
             deniedMsg.innerHTML = message;
-        }
-        
-        function closeDeniedScreen() {
-            deniedScreen.style.display = 'none';
-            // User kembali melihat iframe (mungkin perlu refresh manual jika form sudah terlanjur loading di dalam)
+            // Tidak ada tombol close, user terjebak di sini sampai klik refresh
         }
 
-        // PWA Logic (Sama seperti sebelumnya)
+        // ==========================================
+        // LOGIKA PWA & INSTALL BUTTON
+        // ==========================================
         let deferredPrompt;
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
